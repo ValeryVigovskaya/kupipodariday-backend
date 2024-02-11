@@ -1,4 +1,4 @@
-import { User } from 'src/users/entities/users.entity';
+import { User } from 'src/users/entities/user.entity';
 import { Wish } from 'src/wishes/entities/wish.entity';
 import {
   Entity,
