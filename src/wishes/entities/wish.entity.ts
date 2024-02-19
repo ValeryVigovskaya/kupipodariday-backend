@@ -54,7 +54,7 @@ export class Wish {
   @ManyToOne(() => User, (user) => user.wishes)
   owner: User;
 
-  @Column('varchar')
+  @Column('varchar', { nullable: true })
   @Length(1, 1024)
   description: string;
 
