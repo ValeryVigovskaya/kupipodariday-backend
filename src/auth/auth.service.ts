@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { User } from '../users/entities/user.entity';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from 'src/users/users.service';
+import { comparePasswords } from 'src/utils/bcrypt';
 
 @Injectable()
 export class AuthService {
@@ -22,14 +23,15 @@ export class AuthService {
       where: { username },
     });
 
-    /* В идеальном случае пароль обязательно должен быть захэширован */
-    if (user && user.password === password) {
-      /* Исключаем пароль из результата */
-      const { password, ...result } = user;
-
-      return result;
+    if (!user) {
+      throw new Error('Неправильные почта или пароль');
     }
 
+    const matched = await comparePasswords(password, user.password);
+    if (matched) {
+      const { password, ...result } = user;
+      return result;
+    }
     return null;
   }
 }

@@ -15,6 +15,7 @@ import { UserPublicProfileResponseDto } from './dto/user-public-profile-response
 import { Wish } from 'src/wishes/entities/wish.entity';
 import { Offer } from 'src/offers/entities/offer.entity';
 import { emitKeypressEvents } from 'readline';
+import { hashPassword } from 'src/utils/bcrypt';
 
 @Injectable()
 export class UsersService {
@@ -25,9 +26,10 @@ export class UsersService {
 
   async signup(createUserDto: CreateUserDto): Promise<User> {
     const { password } = createUserDto;
+    const newHashPassword = await hashPassword(password);
     const user = await this.usersRepository.create({
       ...createUserDto,
-      password: password,
+      password: newHashPassword,
     });
 
     return this.usersRepository.save(user);
