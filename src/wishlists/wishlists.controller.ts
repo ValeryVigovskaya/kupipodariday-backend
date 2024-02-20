@@ -42,7 +42,6 @@ export class WishlistsController {
     @Param('id') id: number,
     @Body() updateWishlistDto: UpdateWishlistDto,
   ) {
-    //const userId = req.user.id;
     return this.wishlistsService.update(id, updateWishlistDto);
   }
   @UseGuards(JwtGuard)

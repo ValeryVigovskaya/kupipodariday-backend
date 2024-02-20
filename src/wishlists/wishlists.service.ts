@@ -77,24 +77,45 @@ export class WishlistsService {
     id: number,
     updateWishlistDto: UpdateWishlistDto,
   ): Promise<Wishlist> {
+    //находим вишлист
     const wishlist = await this.wishlistRepository.findOne({
       where: {
         id: id,
       },
       relations: {
-        items: true,
         owner: true,
+        items: true,
       },
     });
     if (!wishlist) {
       throw new Error('Запрашиваемый вишлист не найден');
     }
+    const repeatItem = (item: number) =>
+      updateWishlistDto?.itemsId.find((itemId) => itemId === item);
 
-    return this.wishlistRepository.save({
+    const removeItem = wishlist.items.filter((item) => repeatItem(item.id));
+    //удаляем повтор подарков  из вишлиста и сохраняем
+    const wishlistWithRemoveItems = await this.wishlistRepository.save({
       ...wishlist,
-      ...updateWishlistDto,
+      items: removeItem,
     });
-  } // вариант был не рабочий, удалила
+    if (updateWishlistDto?.itemsId) {
+      await Promise.all(
+        updateWishlistDto?.itemsId.map(async (wishId) => {
+          //проверяем, какие элементы существуют в обновленном вишлисте
+          const existingItem = wishlistWithRemoveItems.items.find(
+            (item) => item.id === wishId,
+          );
+          //если таких нет, ищем и добавляем
+          if (!existingItem) {
+            const wish = await this.wishRepository.findOneBy({ id: wishId });
+            wishlistWithRemoveItems.items.push(wish);
+          }
+        }),
+      );
+    }
+    return this.wishlistRepository.save(wishlistWithRemoveItems);
+  } //вариант работает
 
   async remove(id: number, userId: number): Promise<Wishlist> {
     const wishlist = await this.wishlistRepository.findOne({
