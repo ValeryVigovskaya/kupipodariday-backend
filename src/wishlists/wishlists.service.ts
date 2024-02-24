@@ -45,8 +45,11 @@ export class WishlistsService {
         }),
       );
     }
+    delete wishlist.owner.email;
+    delete wishlist.owner.wishlists;
     user.wishlists.push(wishlist);
     await this.usersRepository.save(user);
+    // delete user.wishlists;
     return this.wishlistRepository.save(wishlist);
   }
 
@@ -57,7 +60,12 @@ export class WishlistsService {
         owner: true,
       },
     });
-    return wishlists;
+
+    const wishlistWithoutEmail = await wishlists.map((item) => {
+      delete item.owner.email;
+      return item;
+    });
+    return wishlistWithoutEmail;
   }
 
   async findOne(id: number): Promise<Wishlist> {
@@ -70,6 +78,7 @@ export class WishlistsService {
         owner: true,
       },
     });
+    delete wishlist.owner.email;
     return wishlist;
   }
 

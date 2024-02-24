@@ -48,7 +48,7 @@ export class Wish {
   @Column('decimal', { scale: 2 })
   price: number;
 
-  @Column('decimal', { scale: 2, nullable: true })
+  @Column('decimal', { scale: 2, nullable: true, default: 0 })
   raised: number;
 
   @ManyToOne(() => User, (user) => user.wishes)

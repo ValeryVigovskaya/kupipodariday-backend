@@ -5,6 +5,9 @@ import {
   OneToMany,
   CreateDateColumn,
   UpdateDateColumn,
+  JoinTable,
+  BeforeInsert,
+  BeforeUpdate,
 } from 'typeorm';
 import {
   IsNotEmpty,
@@ -56,11 +59,21 @@ export class User {
   password: string;
 
   @OneToMany(() => Wish, (wish) => wish.owner)
+  @JoinTable()
   wishes: Wish[];
 
   @OneToMany(() => Offer, (offer) => offer.user)
   offers: Offer[];
 
   @OneToMany(() => Wishlist, (wishlist) => wishlist.owner)
+  @JoinTable()
   wishlists: Wishlist[];
+
+  @BeforeInsert()
+  @BeforeUpdate()
+  validateAbout() {
+    if (!this.about) {
+      this.about = 'Пока ничего не рассказал о себе';
+    }
+  }
 }

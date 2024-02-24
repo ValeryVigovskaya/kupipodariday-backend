@@ -6,6 +6,7 @@ import { Offer } from './entities/offer.entity';
 import { Repository } from 'typeorm';
 import { User } from 'src/users/entities/user.entity';
 import { Wish } from 'src/wishes/entities/wish.entity';
+import { promises } from 'dns';
 
 @Injectable()
 export class OffersService {
@@ -18,11 +19,7 @@ export class OffersService {
     private wishRepository: Repository<Wish>,
   ) {}
 
-  async create(
-    userId: number,
-    offer: CreateOfferDto,
-    itemId: number,
-  ): Promise<Offer> {
+  async create(userId: number, offer: CreateOfferDto) {
     //находим нужного юзера
     const user = await this.usersRepository.findOne({
       where: {
@@ -34,30 +31,63 @@ export class OffersService {
     });
     const wish = await this.wishRepository.findOne({
       where: {
-        id: itemId,
+        id: offer.itemId,
       },
       relations: {
+        owner: true,
         offers: true,
       },
     });
+    if (wish.owner.id === userId) {
+      throw new Error('На собственный подарок сделать оффер невоможно');
+    }
+    if (wish.price === wish.raised) {
+      throw new Error('Необходимая сумма на подарок уже собрана');
+    }
+    const remainder = wish.price - wish.raised;
+    if (offer.amount > remainder) {
+      throw new Error('Заявка превышает необходимую сумму для данного подарка');
+    }
+
     const newOffer = await this.offerRepository.create({
       ...offer,
       user: user,
       item: wish,
+      amount: offer.amount,
+      hidden: offer.hidden,
     });
-    user.offers.push(newOffer);
+    //wish.raised += offer.amount;
     wish.offers.push(newOffer);
+    user.offers.push(newOffer);
+    await this.wishRepository.save({
+      ...wish,
+      raised: (wish.raised += offer.amount),
+    });
     await this.usersRepository.save(user);
-    await this.wishRepository.save(wish);
-    return this.offerRepository.save(newOffer);
-  } //пока не работает
+    const offerSave = await this.offerRepository.save(newOffer);
 
-  findAll() {
-    return `This action returns all offers`;
+    return offerSave;
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} offer`;
+  async findAll(): Promise<Offer[]> {
+    const offers = await this.offerRepository.find({
+      relations: {
+        user: true,
+      },
+    });
+    return offers;
+  }
+
+  findOne(id: number): Promise<Offer> {
+    const offer = this.offerRepository.findOne({
+      where: { id: id },
+      relations: {
+        user: true,
+        item: true,
+      },
+    });
+
+    return offer;
   }
 
   update(id: number, updateOfferDto: UpdateOfferDto) {

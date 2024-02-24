@@ -6,6 +6,7 @@ import { Wish } from './entities/wish.entity';
 import { FindOneOptions, Repository } from 'typeorm';
 import { User } from 'src/users/entities/user.entity';
 import { JwtGuard } from 'src/guards/jwt.guard';
+import { use } from 'passport';
 
 @Injectable()
 export class WishesService {
@@ -15,8 +16,8 @@ export class WishesService {
     @InjectRepository(User)
     private usersRepository: Repository<User>,
   ) {}
-  @UseGuards(JwtGuard)
-  @HttpCode(201)
+  //@UseGuards(JwtGuard)
+  //@HttpCode(201)
   async create(createWishDto: CreateWishDto, id: number): Promise<Wish> {
     //находим нужного юзера
     const user = await this.usersRepository.findOne({
@@ -41,24 +42,41 @@ export class WishesService {
 
   async findLastWishes(): Promise<Wish[]> {
     const sortWishes = await this.wishRepository.find({
+      relations: {
+        owner: true,
+        offers: true,
+      },
       order: {
         createdAt: 'DESC',
       },
       skip: 0,
-      take: 10,
+      take: 40,
     });
-    return sortWishes;
+
+    const wishesWithoutEmail = await sortWishes.map((item) => {
+      delete item.owner.email;
+      return item;
+    });
+    return wishesWithoutEmail;
   }
 
   async findTopWishes(): Promise<Wish[]> {
     const sortWishes = await this.wishRepository.find({
+      relations: {
+        owner: true,
+        offers: true,
+      },
       order: {
-        createdAt: 'ASC',
+        copied: 'ASC',
       },
       skip: 0,
-      take: 10,
+      take: 20,
     });
-    return sortWishes;
+    const wishesWithoutEmail = await sortWishes.map((item) => {
+      delete item.owner.email;
+      return item;
+    });
+    return wishesWithoutEmail;
   }
 
   async findWishById(id: number): Promise<Wish | undefined> {
@@ -67,14 +85,13 @@ export class WishesService {
       relations: {
         owner: true,
         offers: true,
-        wishlists: true,
       },
     });
 
     if (!wish) {
       throw new Error('Запрашиваемый подарок не найден');
     }
-
+    delete wish.owner.email;
     return wish;
   }
 
@@ -89,8 +106,16 @@ export class WishesService {
   async update(
     id: number,
     updateWishDto: UpdateWishDto,
-  ): Promise<Wish | undefined> {
-    const wish = await this.wishRepository.findOneBy({ id });
+    userId: number,
+  ): Promise<Wish> {
+    const wish = await this.wishRepository.findOne({
+      where: {
+        id: id,
+      },
+      relations: {
+        owner: true,
+      },
+    });
     if (!wish) {
       throw new Error('Запрашиваемый подарок не найден');
     }
@@ -98,10 +123,15 @@ export class WishesService {
     if (!wish.owner) {
       throw new Error('Владелец подарка не найден');
     }
-    const user = await this.usersRepository.findOneBy({ id: wish.owner.id });
-    // if (!user) {
-    //   throw new Error('Запрашиваемый пользователь не найден');
-    // }
+    if (wish.owner.id !== userId) {
+      throw new Error('Только владелец подарка может изменять его');
+    }
+    if (wish.raised > 0) {
+      throw new Error(
+        'На подарок уже есть желающие скинуться, изменить стоимость не получится',
+      );
+    }
+
     const newWish = this.wishRepository.save({
       ...wish,
       ...updateWishDto,
@@ -109,32 +139,28 @@ export class WishesService {
     return newWish;
   } //пока не работает
 
-  async copyWishById(id: number, userId: number): Promise<Wish> {
-    //находим подарок по йади
-    const wish = await this.wishRepository.findOneBy({ id });
-    //находим владельца
-    const ownerWish = await this.usersRepository.findOne({
-      where: {
-        wishes: wish,
-      },
-    });
-    //добавляем счетчик копий на подарок
-    wish.copied++;
-    //добавляем владельцу количесто копий
-    await this.usersRepository.save(ownerWish);
-    //находим юзера
-    const user = await this.usersRepository.findOne({
-      where: {
-        id: userId,
-      },
-      relations: {
-        wishes: true,
-      },
-    });
-    //добавляем подарок юзеру в массив
+  async copyWishById(id: number, userId: number) {
+    const user = await this.usersRepository.findOne({ where: { id: userId } });
+    const wish = await this.wishRepository.findOne({ where: { id: id } });
 
-    await this.usersRepository.save(user);
-    return this.wishRepository.save(wish);
+    if (!user || !wish) {
+      throw new Error('Пользователь или подарок не найден');
+    }
+    wish.copied++;
+    // Создаем копию подарка
+    const copiedWish = this.create(
+      {
+        name: wish.name,
+        link: wish.link,
+        image: wish.image,
+        description: wish.description,
+        price: wish.price,
+      },
+      user.id,
+    );
+    //сохраняем у владельца оригинал
+    await this.wishRepository.save(wish);
+    return copiedWish;
   } //пока метод не работает
 
   async remove(id: number, userId: number) {

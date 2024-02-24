@@ -23,17 +23,17 @@ export class OffersController {
   @HttpCode(201)
   @Post()
   create(@Req() req, @Body() offer: CreateOfferDto) {
-    return this.offersService.create(req.user.id, offer, req.body.itemId);
+    return this.offersService.create(req.user.id, offer);
   }
-
+  @UseGuards(JwtGuard)
   @Get()
   findAll() {
     return this.offersService.findAll();
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.offersService.findOne(+id);
+  findOne(@Param('id') id: number) {
+    return this.offersService.findOne(id);
   }
 
   @Patch(':id')

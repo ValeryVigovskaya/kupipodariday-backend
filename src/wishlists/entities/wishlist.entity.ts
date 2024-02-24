@@ -28,10 +28,6 @@ export class Wishlist {
   @IsNotEmpty()
   name: string;
 
-  // @Column('varchar')
-  // @Length(0, 1500)
-  // description: string;
-
   @Column('varchar')
   @IsUrl()
   image: string;

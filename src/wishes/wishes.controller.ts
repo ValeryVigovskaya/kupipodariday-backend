@@ -16,6 +16,7 @@ import { CreateWishDto } from './dto/create-wish.dto';
 import { UpdateWishDto } from './dto/update-wish.dto';
 import { JwtGuard } from 'src/guards/jwt.guard';
 import { Wish } from './entities/wish.entity';
+import { LocalGuard } from 'src/guards/local.guard';
 
 @Controller('wishes')
 export class WishesController {
@@ -28,12 +29,11 @@ export class WishesController {
     return this.wishesService.create(createWishDto, req.user.id);
   }
 
-  @UseGuards(JwtGuard)
   @Get('last')
   findLastWishes(): Promise<Wish[]> {
     return this.wishesService.findLastWishes();
   }
-  @UseGuards(JwtGuard)
+
   @Get('top')
   findTopWishes(): Promise<Wish[]> {
     return this.wishesService.findTopWishes();
@@ -51,8 +51,13 @@ export class WishesController {
   // }
   @UseGuards(JwtGuard)
   @Patch(':id')
-  update(@Param('id') id: number, @Body() updateWishDto: UpdateWishDto) {
-    return this.wishesService.update(id, updateWishDto);
+  update(
+    @Param('id') id: number,
+    @Body() updateWishDto: UpdateWishDto,
+    @Req() req,
+  ) {
+    const userId = req.user.id;
+    return this.wishesService.update(id, updateWishDto, userId);
   }
 
   @UseGuards(JwtGuard)
