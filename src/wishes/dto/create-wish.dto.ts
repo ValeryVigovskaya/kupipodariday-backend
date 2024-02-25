@@ -4,10 +4,13 @@ import {
   IsNumber,
   IsString,
   IsUrl,
+  Length,
 } from 'class-validator';
 
 export class CreateWishDto {
   @IsString()
+  @Length(1, 250)
+  @IsNotEmpty()
   name: string;
 
   @IsUrl()
@@ -20,5 +23,6 @@ export class CreateWishDto {
   price: number;
 
   @IsUrl()
+  @Length(1, 1024)
   description: string;
 }

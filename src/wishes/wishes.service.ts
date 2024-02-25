@@ -3,10 +3,14 @@ import { CreateWishDto } from './dto/create-wish.dto';
 import { UpdateWishDto } from './dto/update-wish.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Wish } from './entities/wish.entity';
-import { FindOneOptions, Repository } from 'typeorm';
+import { FindOneOptions, QueryFailedError, Repository } from 'typeorm';
 import { User } from 'src/users/entities/user.entity';
 import { JwtGuard } from 'src/guards/jwt.guard';
 import { use } from 'passport';
+import { NotFoundExceptionCustom } from 'src/interceptors/not-found';
+import { ConflictExceptionCustom } from 'src/interceptors/conflict-eception';
+import { ForbiddenExceptionCustom } from 'src/interceptors/forbidden-eception';
+import { BadRequestExceptionCustom } from 'src/errors/bad-request-err';
 
 @Injectable()
 export class WishesService {
@@ -16,8 +20,7 @@ export class WishesService {
     @InjectRepository(User)
     private usersRepository: Repository<User>,
   ) {}
-  //@UseGuards(JwtGuard)
-  //@HttpCode(201)
+
   async create(createWishDto: CreateWishDto, id: number): Promise<Wish> {
     //находим нужного юзера
     const user = await this.usersRepository.findOne({
@@ -67,7 +70,7 @@ export class WishesService {
         offers: true,
       },
       order: {
-        copied: 'ASC',
+        copied: 'DESC',
       },
       skip: 0,
       take: 20,
@@ -116,20 +119,16 @@ export class WishesService {
         owner: true,
       },
     });
-    if (!wish) {
-      throw new Error('Запрашиваемый подарок не найден');
+    if (!wish || !wish.owner) {
+      throw new NotFoundExceptionCustom();
     }
 
-    if (!wish.owner) {
-      throw new Error('Владелец подарка не найден');
-    }
     if (wish.owner.id !== userId) {
-      throw new Error('Только владелец подарка может изменять его');
+      throw new ForbiddenExceptionCustom();
     }
     if (wish.raised > 0) {
-      throw new Error(
-        'На подарок уже есть желающие скинуться, изменить стоимость не получится',
-      );
+      //'На подарок уже есть желающие скинуться, изменить стоимость не получится',
+      throw new BadRequestExceptionCustom();
     }
 
     const newWish = this.wishRepository.save({
@@ -137,16 +136,16 @@ export class WishesService {
       ...updateWishDto,
     });
     return newWish;
-  } //пока не работает
+  }
 
   async copyWishById(id: number, userId: number) {
     const user = await this.usersRepository.findOne({ where: { id: userId } });
     const wish = await this.wishRepository.findOne({ where: { id: id } });
 
     if (!user || !wish) {
-      throw new Error('Пользователь или подарок не найден');
+      throw new NotFoundExceptionCustom();
     }
-    wish.copied++;
+
     // Создаем копию подарка
     const copiedWish = this.create(
       {
@@ -159,9 +158,12 @@ export class WishesService {
       user.id,
     );
     //сохраняем у владельца оригинал
-    await this.wishRepository.save(wish);
+    await this.wishRepository.save({
+      ...wish,
+      copied: wish.copied++,
+    });
     return copiedWish;
-  } //пока метод не работает
+  }
 
   async remove(id: number, userId: number) {
     const wish = await this.wishRepository.findOne({
@@ -173,10 +175,12 @@ export class WishesService {
       },
     });
     if (!wish) {
-      throw new Error('Пожелание не найдено');
+      //throw new Error('Пожелание не найдено');
+      throw new NotFoundExceptionCustom();
     }
     if (wish.owner.id !== userId) {
-      throw new Error('Запрашиваемый подарок создан другим пользователем');
+      //throw new Error('Запрашиваемый подарок создан другим пользователем');
+      throw new ForbiddenExceptionCustom();
     }
 
     return this.wishRepository.remove(wish);
