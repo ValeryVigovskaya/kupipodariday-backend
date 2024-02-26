@@ -1,16 +1,13 @@
-import { HttpCode, Injectable, UseGuards } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { CreateWishDto } from './dto/create-wish.dto';
 import { UpdateWishDto } from './dto/update-wish.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Wish } from './entities/wish.entity';
-import { FindOneOptions, QueryFailedError, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { User } from 'src/users/entities/user.entity';
-import { JwtGuard } from 'src/guards/jwt.guard';
-import { use } from 'passport';
-import { NotFoundExceptionCustom } from 'src/interceptors/not-found';
-import { ConflictExceptionCustom } from 'src/interceptors/conflict-eception';
-import { ForbiddenExceptionCustom } from 'src/interceptors/forbidden-eception';
-import { BadRequestExceptionCustom } from 'src/errors/bad-request-err';
+import { NotFoundExceptionCustom } from 'src/errors/not-found';
+import { ForbiddenExceptionCustom } from 'src/errors/forbidden-eception';
+import { BadRequestExceptionCustom } from 'src/errors/bad-request-exception';
 
 @Injectable()
 export class WishesService {
@@ -120,15 +117,20 @@ export class WishesService {
       },
     });
     if (!wish || !wish.owner) {
-      throw new NotFoundExceptionCustom();
+      throw new NotFoundExceptionCustom(
+        'Запрашиваемый подарок или его владелец не найден',
+      );
     }
 
     if (wish.owner.id !== userId) {
-      throw new ForbiddenExceptionCustom();
+      throw new ForbiddenExceptionCustom(
+        'Запрашиваемый подарок создан другим пользователем',
+      );
     }
     if (wish.raised > 0) {
-      //'На подарок уже есть желающие скинуться, изменить стоимость не получится',
-      throw new BadRequestExceptionCustom();
+      throw new BadRequestExceptionCustom(
+        'На подарок уже есть желающие скинуться, изменить стоимость не получится',
+      );
     }
 
     const newWish = this.wishRepository.save({
@@ -143,7 +145,9 @@ export class WishesService {
     const wish = await this.wishRepository.findOne({ where: { id: id } });
 
     if (!user || !wish) {
-      throw new NotFoundExceptionCustom();
+      throw new NotFoundExceptionCustom(
+        'Запрашиваемый пользователь или подарок не найден',
+      );
     }
 
     // Создаем копию подарка
@@ -175,12 +179,12 @@ export class WishesService {
       },
     });
     if (!wish) {
-      //throw new Error('Пожелание не найдено');
-      throw new NotFoundExceptionCustom();
+      throw new NotFoundExceptionCustom('Запрашиваемый подарок не найден');
     }
     if (wish.owner.id !== userId) {
-      //throw new Error('Запрашиваемый подарок создан другим пользователем');
-      throw new ForbiddenExceptionCustom();
+      throw new ForbiddenExceptionCustom(
+        'Запрашиваемый подарок создан другим пользователем',
+      );
     }
 
     return this.wishRepository.remove(wish);

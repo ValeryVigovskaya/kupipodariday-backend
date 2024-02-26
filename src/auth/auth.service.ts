@@ -3,6 +3,8 @@ import { User } from '../users/entities/user.entity';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from 'src/users/users.service';
 import { comparePasswords } from 'src/utils/bcrypt';
+import { UnauthorizedExceptionCustom } from 'src/errors/unauthorized-eception';
+import { NotFoundExceptionCustom } from 'src/errors/not-found';
 
 @Injectable()
 export class AuthService {
@@ -24,13 +26,16 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new Error('Неправильные почта или пароль');
+      throw new NotFoundExceptionCustom('Запрашиваемый пользователь не найден');
     }
 
     const matched = await comparePasswords(password, user.password);
     if (matched) {
-      const { password, ...result } = user;
-      return result;
+      delete user.password;
+      return user;
+    }
+    if (user.password !== password || user.username !== username) {
+      throw new UnauthorizedExceptionCustom('Некорректная пара логин и пароль');
     }
     return null;
   }

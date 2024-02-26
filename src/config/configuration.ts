@@ -11,5 +11,6 @@ export default () => ({
   },
   jwt: {
     secret: process.env.JWT_SECRET || 'jwt_secret_key',
+    expiresIn: '7d',
   },
 });

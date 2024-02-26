@@ -9,14 +9,7 @@ import {
   ManyToMany,
   JoinTable,
 } from 'typeorm';
-import {
-  Contains,
-  IsNotEmpty,
-  Length,
-  IsUrl,
-  IsEmail,
-  IsString,
-} from 'class-validator';
+import { IsNotEmpty, Length, IsUrl } from 'class-validator';
 import { User } from 'src/users/entities/user.entity';
 import { Offer } from 'src/offers/entities/offer.entity';
 import { Wishlist } from 'src/wishlists/entities/wishlist.entity';

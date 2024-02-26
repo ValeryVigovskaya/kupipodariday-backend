@@ -1,12 +1,4 @@
-import { PartialType } from '@nestjs/swagger';
-import { CreateUserDto } from './create-user.dto';
-import {
-  IsEmail,
-  IsNotEmpty,
-  IsString,
-  IsUrl,
-  IsNumber,
-} from 'class-validator';
+import { IsString, IsUrl, IsNumber } from 'class-validator';
 import { Offer } from 'src/offers/entities/offer.entity';
 
 export class UserWishesDto {

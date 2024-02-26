@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { CreateOfferDto } from './dto/create-offer.dto';
-import { UpdateOfferDto } from './dto/update-offer.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Offer } from './entities/offer.entity';
 import { Repository } from 'typeorm';
 import { User } from 'src/users/entities/user.entity';
 import { Wish } from 'src/wishes/entities/wish.entity';
-import { promises } from 'dns';
+import { BadRequestExceptionCustom } from 'src/errors/bad-request-exception';
+import { NotFoundExceptionCustom } from 'src/errors/not-found';
 
 @Injectable()
 export class OffersService {
@@ -39,14 +39,20 @@ export class OffersService {
       },
     });
     if (wish.owner.id === userId) {
-      throw new Error('На собственный подарок сделать оффер невоможно');
+      throw new BadRequestExceptionCustom(
+        'На собственный подарок сделать оффер невоможно',
+      );
     }
     if (wish.price === wish.raised) {
-      throw new Error('Необходимая сумма на подарок уже собрана');
+      throw new BadRequestExceptionCustom(
+        'Необходимая сумма на подарок уже собрана',
+      );
     }
     const remainder = wish.price - wish.raised;
     if (offer.amount > remainder) {
-      throw new Error('Заявка превышает необходимую сумму для данного подарка');
+      throw new BadRequestExceptionCustom(
+        'Заявка превышает необходимую сумму для данного подарка',
+      );
     }
 
     const newOffer = await this.offerRepository.create({
@@ -56,7 +62,7 @@ export class OffersService {
       amount: offer.amount,
       hidden: offer.hidden,
     });
-    //wish.raised += offer.amount;
+
     wish.offers.push(newOffer);
     user.offers.push(newOffer);
     await this.wishRepository.save({
@@ -86,15 +92,18 @@ export class OffersService {
         item: true,
       },
     });
+    if (!offer) {
+      throw new NotFoundExceptionCustom('Запрашиваемый оффер не найден');
+    }
 
     return offer;
   }
 
-  update(id: number, updateOfferDto: UpdateOfferDto) {
-    return `This action updates a #${id} offer`;
-  }
+  // update(id: number, updateOfferDto: UpdateOfferDto) {
+  //   return `This action updates a #${id} offer`;
+  // }
 
-  remove(id: number) {
-    return `This action removes a #${id} offer`;
-  }
+  // remove(id: number) {
+  //   return `This action removes a #${id} offer`;
+  // }
 }

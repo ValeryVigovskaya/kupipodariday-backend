@@ -6,6 +6,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from 'src/users/entities/user.entity';
 import { Wish } from 'src/wishes/entities/wish.entity';
+import { ForbiddenExceptionCustom } from 'src/errors/forbidden-eception';
+import { NotFoundExceptionCustom } from 'src/errors/not-found';
 
 @Injectable()
 export class WishlistsService {
@@ -36,6 +38,11 @@ export class WishlistsService {
       items: [],
     });
 
+    if (wishlist.owner.id !== userId) {
+      throw new ForbiddenExceptionCustom(
+        'Запрашиваемый вишлист создан другим пользователем',
+      );
+    }
     if (data?.itemsId) {
       await Promise.all(
         data?.itemsId.map(async (wishId) => {
@@ -78,6 +85,9 @@ export class WishlistsService {
         owner: true,
       },
     });
+    if (!wishlist) {
+      throw new NotFoundExceptionCustom('Запрашиваемый вишлист не найден');
+    }
     delete wishlist.owner.email;
     return wishlist;
   }
@@ -85,6 +95,7 @@ export class WishlistsService {
   async update(
     id: number,
     updateWishlistDto: UpdateWishlistDto,
+    userId: number,
   ): Promise<Wishlist> {
     //находим вишлист
     const wishlist = await this.wishlistRepository.findOne({
@@ -97,7 +108,12 @@ export class WishlistsService {
       },
     });
     if (!wishlist) {
-      throw new Error('Запрашиваемый вишлист не найден');
+      throw new NotFoundExceptionCustom('Запрашиваемый вишлист не найден');
+    }
+    if (wishlist.owner.id !== userId) {
+      throw new ForbiddenExceptionCustom(
+        'Запрашиваемый вишлист создан другим пользователем',
+      );
     }
     const repeatItem = (item: number) =>
       updateWishlistDto?.itemsId.find((itemId) => itemId === item);
@@ -135,10 +151,12 @@ export class WishlistsService {
       },
     });
     if (!wishlist) {
-      throw new Error('Вишлист не найден');
+      throw new NotFoundExceptionCustom('Запрашиваемый вишлист не найден');
     }
     if (wishlist.owner.id !== userId) {
-      throw new Error('Запрашиваемый вишлист создан другим пользователем');
+      throw new ForbiddenExceptionCustom(
+        'Запрашиваемый подарок создан другим пользователем',
+      );
     }
 
     return this.wishlistRepository.remove(wishlist);

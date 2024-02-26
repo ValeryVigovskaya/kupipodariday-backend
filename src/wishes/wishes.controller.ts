@@ -9,17 +9,12 @@ import {
   UseGuards,
   HttpCode,
   Req,
-  Query,
-  UsePipes,
-  ValidationPipe,
 } from '@nestjs/common';
 import { WishesService } from './wishes.service';
 import { CreateWishDto } from './dto/create-wish.dto';
 import { UpdateWishDto } from './dto/update-wish.dto';
 import { JwtGuard } from 'src/guards/jwt.guard';
 import { Wish } from './entities/wish.entity';
-import { LocalGuard } from 'src/guards/local.guard';
-import { BadRequestExceptionCustom } from 'src/errors/bad-request-err';
 
 @Controller('wishes')
 export class WishesController {

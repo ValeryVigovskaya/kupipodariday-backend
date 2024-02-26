@@ -2,15 +2,13 @@ import {
   ExceptionFilter,
   Catch,
   ArgumentsHost,
-  HttpException,
   HttpStatus,
-  ForbiddenException,
 } from '@nestjs/common';
-import { Request, Response } from 'express';
-import { ConflictExceptionCustom } from './conflict-eception';
-import { BadRequestExceptionCustom } from 'src/errors/bad-request-err';
-import { NotFoundExceptionCustom } from './not-found';
-import { ForbiddenExceptionCustom } from './forbidden-eception';
+import { ConflictExceptionCustom } from '../errors/conflict-eception';
+import { BadRequestExceptionCustom } from 'src/errors/bad-request-exception';
+import { NotFoundExceptionCustom } from '../errors/not-found';
+import { ForbiddenExceptionCustom } from '../errors/forbidden-eception';
+import { UnauthorizedExceptionCustom } from '../errors/unauthorized-eception';
 
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
@@ -42,9 +40,10 @@ export class AllExceptionsFilter implements ExceptionFilter {
       message = exception.getResponse() as string;
     }
 
-    // if (exception instanceof Error) {
-    //   message = 'Запрашиваемый подарок создан другим пользователем';
-    // }
+    if (exception instanceof UnauthorizedExceptionCustom) {
+      status = exception.getStatus();
+      message = exception.getResponse() as string;
+    }
 
     response.status(status).json({
       statusCode: status,
