@@ -26,7 +26,7 @@ export class OffersController {
   findAll() {
     return this.offersService.findAll();
   }
-
+  @UseGuards(JwtGuard)
   @Get(':id')
   findOne(@Param('id') id: number) {
     return this.offersService.findOne(id);

@@ -1,27 +1,11 @@
 import { IsNotEmpty, IsUrl, Length } from 'class-validator';
+import { BaseEntity } from 'src/entities/base.entity';
 import { User } from 'src/users/entities/user.entity';
 import { Wish } from 'src/wishes/entities/wish.entity';
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  CreateDateColumn,
-  UpdateDateColumn,
-  ManyToMany,
-  ManyToOne,
-} from 'typeorm';
+import { Entity, Column, ManyToMany, ManyToOne } from 'typeorm';
 
 @Entity()
-export class Wishlist {
-  @PrimaryGeneratedColumn()
-  id: number;
-
-  @CreateDateColumn()
-  createdAt: Date;
-
-  @UpdateDateColumn()
-  updatedAt: Date;
-
+export class Wishlist extends BaseEntity {
   @Column('varchar', { nullable: false })
   @Length(1, 250)
   @IsNotEmpty()
